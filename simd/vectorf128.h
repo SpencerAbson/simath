@@ -1,0 +1,185 @@
+#ifndef VECTORF128_H_
+#define VECTORF128_H_
+#include <math.h>
+#include "../simath.h"
+#include "../platform.h"
+
+/* vectorf128_cross
+ *
+ * Compute and return the cross product of input0 and input1.
+ * */
+static inline __m128 vectorf128_cross(__m128 const input0, __m128 const input1)
+{
+     // cross product can be computed by (y1, z1, x1) * (z2, x2, y2) - (z1, x1, y1) * (y2, z2, x2 )
+    __m128 tmp0 = _mm_shuffle_ps(input0, input0, _MM_SHUFFLE(3, 0, 2, 1));
+    __m128 tmp1 = _mm_shuffle_ps(input1, input1, _MM_SHUFFLE(3, 1, 0, 2));
+    __m128 tmp2 = _mm_mul_ps(tmp0, input1);
+    __m128 tmp3 = _mm_mul_ps(tmp0, tmp1);
+    __m128 tmp4 = _mm_shuffle_ps(tmp2, tmp2, _MM_SHUFFLE(3, 0, 2, 1));
+
+    return _mm_sub_ps(tmp3, tmp4);
+}
+
+
+/* vectorf128_min
+ *
+ * Compute and return a vector with all its values set to the minimum value of v
+ * */
+static inline __m128 vectorf128_min(__m128 const v)
+{
+    __m128 tmp;
+    tmp = _mm_min_ps(v, _mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 1, 0, 3)));
+    tmp = _mm_min_ps(tmp, _mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(1, 0, 3, 2)));
+    return tmp;
+}
+
+/* vectorf128_round
+ *
+ * Return a vector composed of the values of input rounded to the nearest integer.
+ * */
+static inline __m128 vectorf128_round(__m128 const input)
+{
+#if SIM_INSTRSET > 4 // _mm_round_ps from SSE 4.1
+    return _mm_round_ps(input, _MM_FROUND_TO_NEAREST_INT);
+#else                              // based on http://dss.stephanierct.com/DevBlog/?p=8
+                                   // - edited to remove dogdy casting (cause of range value input error)
+    __m128 v0 = _mm_setzero_ps();
+    __m128 v1 = _mm_cmpeq_ps(v0, v0);
+    __m128i tmp = _mm_castps_si128(v1);
+
+    tmp = _mm_srli_epi32(tmp, 2);
+    __m128 v_nearest = _mm_castsi128_ps(tmp);
+    __m128i i = _mm_cvttps_epi32(input);
+    __m128 a_trunc = _mm_cvtepi32_ps(i);
+    __m128 rmd0 = _mm_sub_ps(input, a_trunc);
+    __m128 rmd1 = _mm_mul_ps(rmd0, v_nearest);
+    __m128i rmd1i = _mm_cvttps_epi32(rmd1);
+
+    // back to m128
+    __m128 conv_rmd_trunc = _mm_cvtepi32_ps(rmd1i);
+    __m128 r = _mm_add_ps(a_trunc, conv_rmd_trunc);
+    return r;
+
+#endif
+}
+
+/* vectorf128_ceil
+ *
+ * Return a vector composed of the values of input rounded to the nearest integer greater than
+ * or equal to them.
+ * */
+static inline __m128 vectorf128_ceil(__m128 const input)
+{
+#if SIM_INSTRSET > 4 // _mm_ceil_ps from SSE 4.1
+    return _mm_ceil_ps(input);
+#else
+    __m128i v0 = _mm_setzero_si128(); // based on http://dss.stephanierct.com/DevBlog/?p=8
+    __m128i v1 = _mm_cmpeq_epi32(v0, v0);
+    __m128i ji = _mm_srli_epi32(v1, 25);
+    __m128i tmp = _mm_slli_epi32(ji, 23);
+    __m128 j = _mm_castsi128_ps(tmp);
+    __m128i i = _mm_cvttps_epi32(input);
+    __m128 fi = _mm_cvtepi32_ps(i);
+    __m128 igx = _mm_cmplt_ps(fi, input);
+    j = _mm_and_ps(igx, j);
+    return _mm_add_ps(fi, j);
+#endif
+
+}
+
+/* vectorf128_floor
+ *
+ * Return a vector composed of the values of input rounded to the nearest integer less than
+ * or equal to them.
+ * */
+static inline __m128 vectorf128_floor(__m128 const input)
+{
+#if SIM_INSTRSET > 4 // _mm_floor_ps from SSE 4.1
+    return _mm_floor_ps(input);
+#else
+    __m128i v0 = _mm_setzero_si128();
+    __m128i v1 = _mm_cmpeq_epi32(v0, v0);
+    __m128i ji = _mm_srli_epi32(v1, 25);
+    __m128i tmp = _mm_slli_epi32(ji, 23);
+    __m128 j = _mm_castsi128_ps(tmp);
+    __m128i i = _mm_cvttps_epi32(input);
+    __m128 fi = _mm_cvtepi32_ps(i);
+    __m128 igx = _mm_cmpgt_ps(fi, input);
+    j = _mm_and_ps(igx, j);
+
+    return _mm_sub_ps(fi, j);
+#endif
+}
+
+/* vectorf128_dot
+ *
+ * Compute and return the dot product of input0 and input1.
+ * */
+static inline float vectorf128_dot(__m128 const input0, __m128 const input1)
+{
+    __m128 tmp;
+#if SIM_INSTRSET > 4
+    tmp = _mm_dp_ps(input0, input1, 0xff);
+#else  // lightning fast alternative
+    tmp = _mm_mul_ps(input0, input1);
+    tmp = _mm_add_ps(_mm_movehl_ps(tmp, tmp), tmp);
+    tmp = _mm_add_ss(_mm_shuffle_ps(tmp, tmp, 1), tmp);
+#endif
+
+    return _mm_cvtss_f32(tmp);
+}
+
+/* vectorf128_vector_dot
+ *
+ * Return a vector whose values are set to the dot product of input0 and input1.
+ * */
+static inline __m128 vectorf128_vector_dot(__m128 const input0, __m128 const input1)
+{
+#if SIM_INSTRSET > 4
+    return _mm_dp_ps(input0, input1, 0xff);
+#endif
+    __m128 tmp = _mm_mul_ps(input0, input1);
+    tmp = _mm_add_ps(_mm_movehl_ps(tmp, tmp), tmp);
+    tmp = _mm_add_ss(_mm_shuffle_ps(tmp, tmp, 1), tmp);
+    return tmp;
+}
+
+/* vectorf128_normalize
+ *
+ * Compute a return the normalised vector of the input (input scaled to have magnitude of 1).
+ * */
+static inline __m128 vectorf128_normalize(__m128 const input)
+{
+    __m128 dot = vectorf128_vector_dot(input, input);
+    SIM_ASSERT(_mm_cvtss_f32(dot) > 0.0f);  // 0 division err
+    __m128 isr = _mm_rsqrt_ps(dot);
+     return _mm_mul_ps(input, isr);
+}
+
+/* vectorf128_scale
+ *
+ * Compute and return the scalar multiplication of input with scalar.
+ * */
+static inline __m128 vectorf128_scale(__m128 const input, float scalar)
+{
+    __m128 scaling_vec = _mm_load_ss(&scalar);  // avoiding uing _mm_set_ps1
+    _mm_shuffle_ps(scaling_vec, scaling_vec, _MM_SHUFFLE(3, 3, 3, 3));
+
+    return _mm_mul_ps(input, scaling_vec);
+}
+
+/* vectorf128_sum
+ *
+ * Compute and return the sum of the elements of input, as a vector of this value. This is not
+ * great in SSE and should really be avoided, but does work.
+ * */
+static inline __m128 vectorf128_sum(__m128 const input)
+{
+    __m128 tmp;
+    tmp = _mm_hadd_ps(input, input);
+    tmp = _mm_hadd_ps(tmp, tmp);
+    return tmp;
+}
+
+
+#endif // VECTORF128_H_
