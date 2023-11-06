@@ -1,9 +1,11 @@
 #ifndef MATRIX4XM128F_H_
 #define MATRIX4XM128F_H_
 
+#include <math.h>
 #include "../platform.h"
 #include "../simath.h"
 #include "vectorf128.h"
+
 
 /*
 * mat4xm128_vec4_product
