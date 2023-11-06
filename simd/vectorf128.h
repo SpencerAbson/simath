@@ -4,6 +4,7 @@
 #include "../simath.h"
 #include "../platform.h"
 
+
 /* vectorf128_cross
  *
  * Compute and return the cross product of input0 and input1.
@@ -32,6 +33,7 @@ static inline __m128 vectorf128_min(__m128 const v)
     tmp = _mm_min_ps(tmp, _mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(1, 0, 3, 2)));
     return tmp;
 }
+
 
 /* vectorf128_round
  *
@@ -63,6 +65,7 @@ static inline __m128 vectorf128_round(__m128 const input)
 #endif
 }
 
+
 /* vectorf128_ceil
  *
  * Return a vector composed of the values of input rounded to the nearest integer greater than
@@ -86,6 +89,7 @@ static inline __m128 vectorf128_ceil(__m128 const input)
 #endif
 
 }
+
 
 /* vectorf128_floor
  *
@@ -111,6 +115,7 @@ static inline __m128 vectorf128_floor(__m128 const input)
 #endif
 }
 
+
 /* vectorf128_dot
  *
  * Compute and return the dot product of input0 and input1.
@@ -129,6 +134,7 @@ static inline float vectorf128_dot(__m128 const input0, __m128 const input1)
     return _mm_cvtss_f32(tmp);
 }
 
+
 /* vectorf128_vector_dot
  *
  * Return a vector whose values are set to the dot product of input0 and input1.
@@ -144,6 +150,7 @@ static inline __m128 vectorf128_vector_dot(__m128 const input0, __m128 const inp
     return tmp;
 }
 
+
 /* vectorf128_normalize
  *
  * Compute a return the normalised vector of the input (input scaled to have magnitude of 1).
@@ -156,6 +163,7 @@ static inline __m128 vectorf128_normalize(__m128 const input)
      return _mm_mul_ps(input, isr);
 }
 
+
 /* vectorf128_scale
  *
  * Compute and return the scalar multiplication of input with scalar.
@@ -167,6 +175,7 @@ static inline __m128 vectorf128_scale(__m128 const input, float scalar)
 
     return _mm_mul_ps(input, scaling_vec);
 }
+
 
 /* vectorf128_sum
  *

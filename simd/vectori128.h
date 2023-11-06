@@ -8,6 +8,7 @@
 #define SMM_STOREU_SI32(mem_addr, vector)         \
     _mm_store_ss((float*)(mem_addr), _mm_castsi128_ps((vector)))     // NOTE: not all compilers have _mm_storeu_si32 as of 2022,
                                                                       // but this works in gcc and msvc.
+
 /*
 * v_mul_i32
 *
@@ -29,6 +30,7 @@ static inline __m128i v_mul_i32(__m128i input0, __m128i input1)
     return _mm_add_epi32(v0, v4); // (A1B1, 0, A2B2, 0) + (0, A2B2, 0, A3B3)
 
 }
+
 
 /*
 * vectori128_cross
@@ -55,6 +57,7 @@ static inline __m128i vectori128_cross(__m128i input0, __m128i input1)
     __m128 tmp4 = _mm_shuffle_ps(tmp2, tmp2, _MM_SHUFFLE(3, 0, 2, 1));
 */
 
+
 /*
 * vectori128_sum
 *
@@ -67,6 +70,7 @@ static inline __m128i vectori128_sum(__m128i input)  // defeats the purpose of S
     return input;  // __m1128i contains sum in all fragments
 }
 
+
 /*
 * vectori128_min
 *
@@ -78,6 +82,7 @@ static inline __m128i vectori128_min(__m128i v)
     v = _mm_min_epi32(v, _mm_shuffle_epi32(v, _MM_SHUFFLE(1, 0, 3, 2)));
     return v;
 }
+
 
 /*
 * vectori128_dot
@@ -94,6 +99,7 @@ static inline int32_t vectori128_dot(__m128i input0, __m128i input1)
     return out;
 }
 
+
 /*
 * vectori128_vector_dot
 *
@@ -104,6 +110,7 @@ static inline __m128i vectori128_vector_dot(__m128i input0, __m128i input1)
     __m128i product = v_mul_i32(input0, input1);
     return vectori128_sum(product);
 }
+
 
 /*
 * vectori128_scale
